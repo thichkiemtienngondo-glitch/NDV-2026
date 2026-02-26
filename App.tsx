@@ -696,8 +696,17 @@ const App: React.FC = () => {
     }
   };
 
-  const handleResetRankProfit = () => {
+  const handleResetRankProfit = async () => {
     setRankProfit(0);
+    try {
+      await fetch('/api/rankProfit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rankProfit: 0 })
+      });
+    } catch (e) {
+      console.error("Lỗi khi reset phí nâng hạng:", e);
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {

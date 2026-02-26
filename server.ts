@@ -17,7 +17,7 @@ async function startServer() {
   });
 
   // Use the API routes from /api/index.ts
-  app.use(apiApp);
+  app.use("/api", apiApp);
 
   // Vite middleware for development
   const distPath = path.join(process.cwd(), "dist");

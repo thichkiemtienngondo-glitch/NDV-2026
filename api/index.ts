@@ -13,10 +13,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const STORAGE_LIMIT_MB = 45; // Virtual limit for demo purposes
 
-const app = express();
+const router = express.Router();
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+router.use(cors());
+router.use(express.json({ limit: '50mb' }));
 
 // Helper to estimate JSON size in MB
 const getStorageUsage = (data: any) => {
@@ -94,7 +94,7 @@ const autoCleanupStorage = async () => {
 };
 
 // Supabase Status check for Admin
-app.get("/api/supabase-status", async (req, res) => {
+router.get("/supabase-status", async (req, res) => {
   try {
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return res.json({ 
@@ -119,7 +119,7 @@ app.get("/api/supabase-status", async (req, res) => {
 });
 
 // API Routes
-app.get("/api/data", async (req, res) => {
+router.get("/data", async (req, res) => {
   try {
     const { data: users } = await supabase.from('users').select('*');
     const { data: loans } = await supabase.from('loans').select('*');
@@ -156,7 +156,7 @@ app.get("/api/data", async (req, res) => {
   }
 });
 
-app.post("/api/users", async (req, res) => {
+router.post("/users", async (req, res) => {
   try {
     const incomingUsers = req.body;
     if (!Array.isArray(incomingUsers)) {
@@ -174,7 +174,7 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
-app.post("/api/loans", async (req, res) => {
+router.post("/loans", async (req, res) => {
   try {
     const incomingLoans = req.body;
     if (!Array.isArray(incomingLoans)) {
@@ -192,7 +192,7 @@ app.post("/api/loans", async (req, res) => {
   }
 });
 
-app.post("/api/notifications", async (req, res) => {
+router.post("/notifications", async (req, res) => {
   try {
     const incomingNotifs = req.body;
     if (!Array.isArray(incomingNotifs)) {
@@ -210,7 +210,7 @@ app.post("/api/notifications", async (req, res) => {
   }
 });
 
-app.post("/api/budget", async (req, res) => {
+router.post("/budget", async (req, res) => {
   try {
     const { budget } = req.body;
     await supabase.from('config').upsert({ key: 'budget', value: budget }, { onConflict: 'key' });
@@ -220,7 +220,7 @@ app.post("/api/budget", async (req, res) => {
   }
 });
 
-app.post("/api/rankProfit", async (req, res) => {
+router.post("/rankProfit", async (req, res) => {
   try {
     const { rankProfit } = req.body;
     await supabase.from('config').upsert({ key: 'rankProfit', value: rankProfit }, { onConflict: 'key' });
@@ -230,7 +230,7 @@ app.post("/api/rankProfit", async (req, res) => {
   }
 });
 
-app.delete("/api/users/:id", async (req, res) => {
+router.delete("/users/:id", async (req, res) => {
   try {
     const userId = req.params.id;
     await supabase.from('users').delete().eq('id', userId);
@@ -242,7 +242,7 @@ app.delete("/api/users/:id", async (req, res) => {
   }
 });
 
-app.post("/api/sync", async (req, res) => {
+router.post("/sync", async (req, res) => {
   try {
     const { users, loans, notifications, budget, rankProfit } = req.body;
     
@@ -283,4 +283,9 @@ app.post("/api/sync", async (req, res) => {
   }
 });
 
-export default app;
+// 404 handler for API routes
+router.use((req, res) => {
+  res.status(404).json({ error: `API route not found: ${req.method} ${req.originalUrl}` });
+});
+
+export default router;
