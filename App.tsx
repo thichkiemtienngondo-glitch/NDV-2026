@@ -556,8 +556,8 @@ const App: React.FC = () => {
     let newStatus = loan.status;
     let rejectionReason = reason || loan.rejectionReason;
 
-    if (action === 'DISBURSE') newBudget -= loan.amount;
-    else if (action === 'SETTLE') newBudget += loan.amount;
+    if (action === 'DISBURSE') newBudget -= (loan.amount * 0.85); // User receives 85%
+    else if (action === 'SETTLE') newBudget += (loan.amount + (loan.fine || 0)); // User repays principal + fines
 
     if (action === 'REJECT') {
       if (loan.status === 'CHỜ TẤT TOÁN') {
@@ -681,18 +681,30 @@ const App: React.FC = () => {
     }
 
     if (updatedUser) {
+      const upgradeFee = action === 'APPROVE_RANK' ? (updatedUser.totalLimit * 0.05) : 0;
+      const newBudget = systemBudget + upgradeFee;
+
       try {
         await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newUsers)
         });
+
+        if (upgradeFee > 0) {
+          await fetch('/api/budget', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ budget: newBudget })
+          });
+        }
       } catch (e) {
         console.error("Lỗi lưu nâng hạng:", e);
       }
       
       setRegisteredUsers(newUsers);
       if (user?.id === userId) setUser(updatedUser);
+      if (upgradeFee > 0) setSystemBudget(newBudget);
     }
   };
 
@@ -774,6 +786,18 @@ const App: React.FC = () => {
             }}
             onMarkNotificationRead={(id) => {
               setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+            }}
+            onMarkAllNotificationsRead={() => {
+              if (user) {
+                const updatedNotifs = notifications.map(n => n.userId === user.id ? { ...n, read: true } : n);
+                setNotifications(updatedNotifs);
+                // Persist immediately
+                fetch('/api/notifications', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(updatedNotifs)
+                });
+              }
             }}
           />
         );

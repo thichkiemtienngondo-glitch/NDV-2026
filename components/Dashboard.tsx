@@ -15,6 +15,7 @@ interface DashboardProps {
   onSettleLoan?: (loan: LoanRecord) => void;
   onViewContract?: (loan: LoanRecord) => void;
   onMarkNotificationRead?: (id: string) => void;
+  onMarkAllNotificationsRead?: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -27,7 +28,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   onViewAllLoans, 
   onSettleLoan, 
   onViewContract,
-  onMarkNotificationRead
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead
 }) => {
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -123,7 +125,10 @@ const Dashboard: React.FC<DashboardProps> = ({
           <h1 className="text-lg font-black text-white tracking-widest uppercase">Money</h1>
         </div>
         <button 
-          onClick={() => setShowNotifications(true)}
+          onClick={() => {
+            setShowNotifications(true);
+            onMarkAllNotificationsRead?.();
+          }}
           className="w-10 h-10 bg-[#111111] border border-white/5 rounded-full flex items-center justify-center text-gray-400 relative active:scale-90 transition-all"
         >
           <Bell size={20} />
