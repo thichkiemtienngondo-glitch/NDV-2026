@@ -5,6 +5,10 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
 
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error("CRITICAL ERROR: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing from environment variables.");
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const STORAGE_LIMIT_MB = 45; // Virtual limit for demo purposes
@@ -235,6 +239,47 @@ app.delete("/api/users/:id", async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.post("/api/sync", async (req, res) => {
+  try {
+    const { users, loans, notifications, budget, rankProfit } = req.body;
+    
+    const tasks = [];
+    
+    if (users && Array.isArray(users)) {
+      tasks.push(supabase.from('users').upsert(users, { onConflict: 'id' }));
+    }
+    
+    if (loans && Array.isArray(loans)) {
+      tasks.push(supabase.from('loans').upsert(loans, { onConflict: 'id' }));
+    }
+    
+    if (notifications && Array.isArray(notifications)) {
+      tasks.push(supabase.from('notifications').upsert(notifications, { onConflict: 'id' }));
+    }
+    
+    if (budget !== undefined) {
+      tasks.push(supabase.from('config').upsert({ key: 'budget', value: budget }, { onConflict: 'key' }));
+    }
+    
+    if (rankProfit !== undefined) {
+      tasks.push(supabase.from('config').upsert({ key: 'rankProfit', value: rankProfit }, { onConflict: 'key' }));
+    }
+    
+    const results = await Promise.all(tasks);
+    const errors = results.filter(r => r.error).map(r => r.error);
+    
+    if (errors.length > 0) {
+      console.error("Sync errors:", errors);
+      return res.status(207).json({ success: false, errors });
+    }
+    
+    res.json({ success: true });
+  } catch (e: any) {
+    console.error("Lỗi trong /api/sync:", e);
+    res.status(500).json({ error: e.message || "Internal Server Error" });
   }
 });
 

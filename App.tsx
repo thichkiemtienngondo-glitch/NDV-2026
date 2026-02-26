@@ -201,6 +201,7 @@ const App: React.FC = () => {
           }
         }
       } catch (e: any) {
+        console.error("Lỗi khi tải dữ liệu từ server:", e.message || e);
         if (retries > 0) {
           setTimeout(() => fetchData(isInitial, retries - 1), 2000);
         }
@@ -344,35 +345,22 @@ const App: React.FC = () => {
       localStorage.setItem('vnv_user', user ? JSON.stringify(user) : '');
       
       try {
-        await fetch('/api/users', {
+        const response = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(registeredUsers)
+          body: JSON.stringify({
+            users: registeredUsers,
+            loans: loans,
+            notifications: notifications,
+            budget: systemBudget,
+            rankProfit: rankProfit
+          })
         });
         
-        await fetch('/api/loans', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(loans)
-        });
-        
-        await fetch('/api/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(notifications)
-        });
-        
-        await fetch('/api/budget', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ budget: systemBudget })
-        });
-        
-        await fetch('/api/rankProfit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rankProfit })
-        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Server error: ${response.status}`);
+        }
       } catch (e) {
         console.error("Lỗi khi lưu dữ liệu lên server:", e);
       }
